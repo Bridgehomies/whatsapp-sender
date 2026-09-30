@@ -185,7 +185,7 @@ def record_not_on_whatsapp(number: str, message: str, image_path: str = ""):
 # Valid national-number lengths (digits after the country code, no trunk 0).
 # Used to tell "923234217100" (already has +92) from "3234217100" (local).
 _NATIONAL_LEN = {
-    "+92": (10, 10), "+1": (10, 10), "+44": (9, 10), "+971": (8, 9),
+    "+92": (9, 10), "+1": (10, 10), "+44": (9, 10), "+971": (8, 9),
     "+966": (8, 9), "+974": (8, 8), "+968": (8, 8), "+61": (9, 9),
     "+64": (8, 10), "+880": (10, 10), "+91": (10, 10), "+27": (9, 9),
 }
@@ -202,7 +202,15 @@ def clean_number(raw: str, country_code: str = "+92") -> str:
       03234217100     -> +923234217100
       3234217100      -> +923234217100
     """
-    cleaned = re.sub(r"[^\d+]", "", (raw or "").strip())
+    raw = (raw or "").strip()
+    # Spreadsheet exports store numbers as floats: "923468502307.0" or 9.23e+11
+    if re.fullmatch(r"\+?\d+(\.\d+)?[eE][+-]?\d+", raw):
+        try:
+            raw = str(int(float(raw)))
+        except ValueError:
+            pass
+    raw = re.sub(r"\.0+$", "", raw)
+    cleaned = re.sub(r"[^\d+]", "", raw)
     # keep only a leading '+', drop any stray ones
     has_plus = cleaned.startswith("+")
     digits = cleaned.replace("+", "")
